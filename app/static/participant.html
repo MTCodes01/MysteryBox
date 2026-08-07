@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Voting — Participant</title>
+  <meta name="description" content="Anonymous event voting — upload your poster and rate others." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: '#6366f1', light: '#818cf8', dark: '#4f46e5' },
+          },
+          animation: {
+            'fade-in':  'fadeIn 0.4s ease-out both',
+            'slide-up': 'slideUp 0.4s ease-out both',
+            'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeIn:    { from: { opacity: 0 }, to: { opacity: 1 } },
+            slideUp:   { from: { opacity: 0, transform: 'translateY(20px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+            pulseSoft: { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.6 } },
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .star-btn { transition: transform 0.1s, color 0.15s; }
+    .star-btn:hover { transform: scale(1.2); }
+    .star-btn.active { color: #f59e0b; }
+    .progress-bar { transition: transform 0.6s cubic-bezier(0.4,0,0.2,1); transform-origin: left; width: 100%; transform: scaleX(0); }
+    #upload-drop-zone.drag-over { border-color: #6366f1; background: rgba(99,102,241,0.1); }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-zinc-950 min-h-screen flex flex-col">
+
+<!-- ── Header ── -->
+<header class="border-b border-white/10 bg-zinc-900/60 backdrop-blur-xl border-b border-white/5 shadow-xl shadow-black/50 backdrop-blur sticky top-0 z-50">
+  <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-['Outfit'] font-bold tracking-tight text-sm">V</div>
+      <span class="font-semibold text-zinc-100">Event Voting</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="participant-badge" class="hidden text-xs bg-white/10 text-indigo-400 border border-white/20 px-2.5 py-1 rounded-full font-medium"></span>
+      <span id="ws-dot" class="w-2 h-2 rounded-full bg-indigo-500" title="Disconnected"></span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Main ── -->
+<main class="flex-1 flex flex-col px-4 py-6 md:py-10">
+  <div class="w-full max-w-xl m-auto">
+
+    <!-- WAITING -->
+    <div id="view-waiting" class="hidden animate-fade-in text-center">
+      <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-4xl">⏳</div>
+      <h1 class="text-3xl font-['Outfit'] font-bold tracking-tight text-2xl mb-2">Waiting to Begin</h1>
+      <p class="text-zinc-400 text-lg">The host will start the event shortly. Stay on this page!</p>
+      <div class="mt-8 flex justify-center">
+        <div class="flex gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-white/50 animate-pulse-soft" style="animation-delay:0ms"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-white/50 animate-pulse-soft" style="animation-delay:150ms"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-white/50 animate-pulse-soft" style="animation-delay:300ms"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div id="view-upload" class="hidden animate-fade-in">
+      <div class="text-center mb-8">
+        <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-4xl">📸</div>
+        <h1 class="text-3xl font-['Outfit'] font-bold tracking-tight text-2xl">Upload Your Poster</h1>
+        <p class="text-zinc-400 mt-2">One image only · PNG, JPG, WEBP · Max 20 MB</p>
+      </div>
+
+      <div id="upload-area">
+        <div id="upload-drop-zone"
+          class="border-2 border-dashed border-white/20 rounded-2xl p-6 md:p-10 text-center cursor-pointer transition-all hover:border-red-500 hover:bg-white/5">
+          <input type="file" id="file-input" class="hidden" accept="image/png,image/jpeg,image/webp" />
+          <div id="drop-icon" class="text-5xl mb-4">🖼️</div>
+          <p class="text-lg font-semibold text-zinc-300">Drag & drop your image here</p>
+          <p class="text-zinc-400 mt-1">or <span class="text-indigo-400 underline cursor-pointer" onclick="document.getElementById('file-input').click()">browse files</span></p>
+        </div>
+
+        <div id="upload-preview" class="hidden mt-6">
+          <img id="preview-img" style="display:none;" class="w-full max-h-72 object-contain rounded-xl border border-white/20 bg-zinc-900/60 backdrop-blur-xl shadow-2xl shadow-black/50 border border-white/5" / src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=">
+          <div class="mt-4 flex gap-3">
+            <button id="upload-btn"
+              class="flex-1 bg-red-600 hover:bg-white/50 active:scale-95 transition-all text-white font-semibold py-3 rounded-xl text-lg">
+              Upload Image
+            </button>
+            <button onclick="cancelPreview()"
+              class="px-4 bg-white/5 hover:bg-white/10 transition rounded-xl text-zinc-400">✕</button>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div id="upload-progress" class="hidden mt-4">
+          <div class="bg-white/5 rounded-full h-2.5 overflow-hidden">
+            <div id="progress-bar-fill" class="progress-bar bg-white/50 h-full rounded-full" style="width:0%"></div>
+          </div>
+          <p class="text-zinc-400 text-sm mt-2 text-center" id="upload-progress-label">Uploading…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD DONE (waiting for voting) -->
+    <div id="view-upload-done" class="hidden animate-fade-in text-center">
+      <div class="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-800 flex items-center justify-center text-5xl">✅</div>
+      <h1 class="text-3xl font-['Outfit'] font-bold tracking-tight text-2xl text-emerald-400">Upload Complete!</h1>
+      <p class="text-zinc-400 mt-3 text-lg">Waiting for everyone to upload…</p>
+      <div id="upload-done-preview" class="mt-6">
+        <img id="done-preview-img" style="display:none;" class="mx-auto max-h-64 object-contain rounded-xl border border-white/20 bg-zinc-900/60 backdrop-blur-xl shadow-2xl shadow-black/50 border border-white/5" / src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=">
+        <button id="btn-remove-upload" onclick="removeUpload()" class="mt-4 px-6 py-2 rounded-xl border border-white/10 bg-red-950/30 hover:bg-white/10 hover:scale-[1.02] transition-all text-indigo-400 transition text-sm font-semibold active:scale-95">Remove & Re-upload</button>
+      </div>
+    </div>
+
+    <!-- VOTING -->
+    <div id="view-voting" class="hidden animate-fade-in">
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <h1 class="text-2xl font-['Outfit'] font-bold tracking-tight text-2xl">Rate This Poster</h1>
+          <span id="vote-counter" class="text-sm font-semibold text-indigo-400 bg-white/10 border border-white/20 px-3 py-1 rounded-full"></span>
+        </div>
+        <!-- Voting progress -->
+        <div class="bg-white/5 rounded-full h-1.5 overflow-hidden">
+          <div id="vote-progress-bar" class="progress-bar bg-white/50 h-full rounded-full" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="bg-zinc-900/60 backdrop-blur-xl shadow-2xl shadow-black/50 border border-white/5 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+        <img id="vote-image" onclick="openFullscreenImage()" style="display:none;" class="w-full object-contain max-h-80 bg-zinc-950/50 cursor-pointer hover:opacity-90 transition-opacity" title="Click to view full screen" / src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=">
+        <div class="p-6">
+          <p class="text-zinc-400 text-sm mb-4 text-center">How would you rate this poster?</p>
+          <div id="star-row" class="mb-4">
+            <div class="flex justify-center gap-2 text-5xl cursor-pointer select-none mb-2" id="star-container" onmouseleave="hoverStar(0)">
+              <span class="star-btn" data-value="1" onclick="setStar(1)" onmouseover="hoverStar(1)">☆</span>
+              <span class="star-btn" data-value="2" onclick="setStar(2)" onmouseover="hoverStar(2)">☆</span>
+              <span class="star-btn" data-value="3" onclick="setStar(3)" onmouseover="hoverStar(3)">☆</span>
+              <span class="star-btn" data-value="4" onclick="setStar(4)" onmouseover="hoverStar(4)">☆</span>
+              <span class="star-btn" data-value="5" onclick="setStar(5)" onmouseover="hoverStar(5)">☆</span>
+            </div>
+            <input type="hidden" id="vote-slider" value="0">
+          </div>
+          <button id="submit-vote-btn" onclick="submitSliderVote()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all text-white font-semibold py-3 rounded-xl">Submit Rating</button>
+        </div>
+      </div>
+
+
+    </div>
+
+    <!-- VOTING DONE -->
+    <div id="view-voting-done" class="hidden animate-fade-in text-center">
+      <div class="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-800 flex items-center justify-center text-5xl">🎉</div>
+      <h1 class="text-3xl font-['Outfit'] font-bold tracking-tight text-2xl text-emerald-400">Voting Complete!</h1>
+      <p class="text-zinc-400 mt-3 text-lg">Sit tight — the host is about to reveal the results!</p>
+      <div class="mt-8 flex justify-center">
+        <div class="flex gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full bg-white/50 animate-pulse-soft" style="animation-delay:0ms"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-white/50 animate-pulse-soft" style="animation-delay:150ms"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-white/50 animate-pulse-soft" style="animation-delay:300ms"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="view-results" class="hidden animate-fade-in">
+      <div class="text-center mb-10">
+        <div class="text-6xl mb-3">🏆</div>
+        <h1 class="text-4xl font-['Outfit'] font-bold tracking-tight text-2xl bg-gradient-to-r from-yellow-400 to-amber-500  ">Results!</h1>
+      </div>
+      <div id="results-list" class="space-y-4">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- NOT REGISTERED -->
+    <div id="view-not-registered" class="hidden animate-fade-in text-center">
+      <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-white/5 flex items-center justify-center text-4xl">🔒</div>
+      <h1 class="text-2xl font-['Outfit'] font-bold tracking-tight text-2xl text-zinc-300">You need an invite</h1>
+      <p class="text-zinc-400 mt-3">Scan the QR code displayed by the host to join the event.</p>
+    </div>
+
+    <!-- ERROR -->
+    <div id="view-error" class="hidden animate-fade-in text-center">
+      <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-white/10 flex items-center justify-center text-4xl">⚠️</div>
+      <h1 class="text-2xl font-['Outfit'] font-bold tracking-tight text-2xl text-indigo-400">Something went wrong</h1>
+      <p id="error-msg" class="text-zinc-400 mt-3"></p>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════
+const state = {
+  participantId:   null,
+  displayNumber:   null,
+  phase:           null,
+  hasUpload:       false,
+  images:          [],   // [{upload_id, filename, url, voted}]
+  currentIndex:    0,
+  totalToVote:     0,
+  myUploadUrl:     null,
+  ws:              null,
+  wsBackoff:       1000,
+  token:           null,   // from URL if /join/<token>
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  // Extract token from URL path /join/<token>
+  const pathParts = location.pathname.split('/');
+  if (pathParts[1] === 'join' && pathParts[2]) {
+    state.token = pathParts[2];
+    await handleJoin(state.token);
+  } else {
+    await loadMe();
+  }
+  setupUploadZone();
+  connectWS();
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════════
+async function handleJoin(token) {
+  try {
+    const res  = await fetch(`/join/${token}`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) {
+      showView('error');
+      document.getElementById('error-msg').textContent = data.detail || 'Invalid invite link.';
+      return;
+    }
+    state.participantId  = data.participant_id;
+    state.displayNumber  = data.display_number;
+    state.phase          = data.phase;
+    updateBadge();
+    // Replace URL to /
+    history.replaceState({}, '', '/');
+    await renderPhase();
+  } catch (e) {
+    showView('error');
+    document.getElementById('error-msg').textContent = 'Could not connect to server.';
+  }
+}
+
+async function loadMe() {
+  try {
+    const res  = await fetch('/me');
+    if (res.status === 401) {
+      showView('not-registered');
+      return;
+    }
+    const data = await res.json();
+    state.participantId = data.participant_id;
+    state.displayNumber = data.display_number;
+    state.phase         = data.phase;
+    state.hasUpload     = data.has_upload;
+    updateBadge();
+    await renderPhase();
+  } catch {
+    showView('not-registered');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PHASE RENDERING
+// ═══════════════════════════════════════════════════════════════════
+async function renderPhase() {
+  const phase = state.phase;
+
+  if (phase === 'WAITING') {
+    showView('waiting');
+  } else if (phase === 'UPLOAD') {
+    if (state.hasUpload) {
+      showView('upload-done');
+    } else {
+      showView('upload');
+    }
+  } else if (phase === 'VOTING') {
+    await loadVotingImages();
+  } else if (phase === 'RESULTS') {
+    await loadResults();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UPLOAD
+// ═══════════════════════════════════════════════════════════════════
+function setupUploadZone() {
+  const zone  = document.getElementById('upload-drop-zone');
+  const input = document.getElementById('file-input');
+  const btn   = document.getElementById('upload-btn');
+
+  zone.addEventListener('click',  () => input.click());
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave',  () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop',   e  => { e.preventDefault(); zone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+  input.addEventListener('change', e => handleFile(e.target.files[0]));
+  btn.addEventListener('click', doUpload);
+}
+
+let selectedFile = null;
+let progressInterval = null;
+
+function handleFile(file) {
+  if (!file) return;
+  selectedFile = file;
+  const url = URL.createObjectURL(file);
+  document.getElementById('preview-img').src = url;
+  document.getElementById('upload-drop-zone').classList.add('hidden');
+  document.getElementById('upload-preview').classList.remove('hidden');
+}
+
+function cancelPreview() {
+  selectedFile = null;
+  document.getElementById('upload-drop-zone').classList.remove('hidden');
+  document.getElementById('upload-preview').classList.add('hidden');
+  document.getElementById('upload-progress').classList.add('hidden');
+  
+  const btn = document.getElementById('upload-btn');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Upload Image';
+  }
+  
+  if (progressInterval) clearInterval(progressInterval);
+  document.getElementById('file-input').value = '';
+}
+
+async function doUpload() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.textContent = 'Uploading…';
+
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+
+  document.getElementById('upload-progress').classList.remove('hidden');
+  animateProgressBar(0, 80, 1200);
+
+  try {
+    const res  = await fetch('/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      animateProgressBar(80, 0, 300);
+      document.getElementById('upload-progress').classList.add('hidden');
+      btn.disabled    = false;
+      btn.textContent = 'Upload Image';
+      alert(data.detail || 'Upload failed.');
+      return;
+    }
+
+    animateProgressBar(80, 100, 400);
+    setTimeout(() => {
+      state.hasUpload  = true;
+      state.myUploadUrl = URL.createObjectURL(selectedFile);
+      document.getElementById('done-preview-img').src = state.myUploadUrl;
+      showView('upload-done');
+    }, 500);
+
+  } catch (e) {
+    btn.disabled    = false;
+    btn.textContent = 'Upload Image';
+    alert('Upload error. Try again.');
+  }
+}
+
+function animateProgressBar(from, to, duration) {
+  if (progressInterval) clearInterval(progressInterval);
+  const bar   = document.getElementById('progress-bar-fill');
+  const label = document.getElementById('upload-progress-label');
+  const step  = (to - from) / (duration / 30);
+  let cur     = from;
+  progressInterval = setInterval(() => {
+    cur += step;
+    if ((step > 0 && cur >= to) || (step < 0 && cur <= to)) {
+      cur = to;
+      clearInterval(progressInterval);
+    }
+    bar.style.transform = `scaleX(${cur / 100})`;
+    label.textContent = cur >= 100 ? 'Complete!' : `Uploading… ${Math.round(cur)}%`;
+  }, 30);
+}
+
+async function removeUpload() {
+  if (!confirm('Are you sure you want to remove your upload?')) return;
+  const btn = document.getElementById('btn-remove-upload');
+  btn.disabled = true;
+  btn.textContent = 'Removing…';
+  
+  try {
+    const res = await fetch('/upload', { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.detail || 'Failed to remove upload.');
+      return;
+    }
+    state.hasUpload = false;
+    state.myUploadUrl = null;
+    cancelPreview();
+    showView('upload');
+  } catch (e) {
+    alert('Network error. Try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Remove & Re-upload';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// VOTING
+// ═══════════════════════════════════════════════════════════════════
+async function loadVotingImages() {
+  try {
+    const res    = await fetch('/images');
+    const images = await res.json();
+    state.images = images;
+    state.totalToVote = images.length;
+
+    // Find first unvoted
+    const firstUnvoted = images.findIndex(i => !i.voted);
+    if (firstUnvoted === -1) {
+      showView('voting-done');
+      return;
+    }
+    state.currentIndex = firstUnvoted;
+    renderVotingCard();
+    showView('voting');
+  } catch {
+    showView('error');
+    document.getElementById('error-msg').textContent = 'Failed to load images.';
+  }
+}
+
+function renderVotingCard() {
+  const img   = state.images[state.currentIndex];
+  const voted = state.images.filter(i => i.voted).length;
+  const total = state.totalToVote;
+
+  const vImg = document.getElementById('vote-image'); vImg.src = img.url; vImg.style.display = 'block';
+  document.getElementById('vote-counter').textContent = `${voted + 1} / ${total}`;
+  document.getElementById('vote-progress-bar').style.transform = `scaleX(${voted / total})`;
+
+  // Reset slider
+  const slider = document.getElementById('vote-slider');
+  if (slider) {
+    slider.value = 0;
+    slider.disabled = false;
+  }
+  setStar(0);
+
+  const btn = document.getElementById('submit-vote-btn');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'Submit Rating';
+  }
+}
+
+function hoverStar(val) {
+  const current = parseInt(document.getElementById('vote-slider').value) || 0;
+  const target = val > 0 ? val : current;
+  
+  for (let i = 1; i <= 5; i++) {
+    const star = document.querySelector(`.star-btn[data-value="${i}"]`);
+    if (!star) continue;
+    if (i <= target) {
+      star.classList.add('active');
+      star.textContent = '★';
+    } else {
+      star.classList.remove('active');
+      star.textContent = '☆';
+    }
+  }
+}
+
+function setStar(val) {
+  const slider = document.getElementById('vote-slider');
+  if (slider) slider.value = val;
+  hoverStar(val);
+}
+
+async function submitSliderVote() {
+  const slider = document.getElementById('vote-slider');
+  const score = parseFloat(slider.value);
+  if (!score || score === 0) {
+    alert("Please select a star rating!");
+    return;
+  }
+  const img = state.images[state.currentIndex];
+  
+  const btn = document.getElementById('submit-vote-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+  slider.disabled = true;
+
+  try {
+    const res = await fetch('/vote', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ upload_id: img.upload_id, score }),
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      alert(d.detail || 'Vote failed.');
+      btn.disabled = false;
+      btn.textContent = 'Submit Rating';
+      slider.disabled = false;
+      return;
+    }
+
+    state.images[state.currentIndex].voted = true;
+
+    // Next
+    const nextUnvoted = state.images.findIndex((img, idx) => idx > state.currentIndex && !img.voted);
+    if (nextUnvoted !== -1) {
+      state.currentIndex = nextUnvoted;
+      renderVotingCard();
+    } else {
+      showView('voting-done');
+    }
+  } catch (e) {
+    alert('Network error.');
+    btn.disabled = false;
+    btn.textContent = 'Submit Rating';
+    slider.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RESULTS
+// ═══════════════════════════════════════════════════════════════════
+async function loadResults() {
+  // Try fetching leaderboard — host must reveal for this to work
+  // We get it from the WS event; fallback to a held state
+  showView('results');
+  if (state.lastLeaderboard) {
+    renderResults(state.lastLeaderboard);
+  }
+}
+
+function renderResults(leaderboard) {
+  const medals  = ['🥇', '🥈', '🥉'];
+  const list    = document.getElementById('results-list');
+  list.innerHTML = '';
+
+  leaderboard.forEach((item, i) => {
+    const medal    = medals[i] || `#${item.rank}`;
+    const stars    = '★'.repeat(Math.round(item.avg_score)) + '☆'.repeat(5 - Math.round(item.avg_score));
+    const cardCls  = i === 0
+      ? 'bg-gradient-to-r from-yellow-900/40 to-amber-900/30 border-yellow-600/40'
+      : i === 1
+        ? 'bg-gradient-to-r from-gray-700/40 to-slate-700/30 border-gray-500/40'
+        : i === 2
+          ? 'bg-gradient-to-r from-orange-900/30 to-amber-900/20 border-orange-700/30'
+          : 'bg-zinc-900/60 backdrop-blur-xl shadow-2xl shadow-black/50 border border-white/5 border-white/10';
+
+    const card = document.createElement('div');
+    card.className = `animate-slide-up rounded-2xl border p-4 flex gap-4 items-center ${cardCls}`;
+    card.style.animationDelay = `${i * 80}ms`;
+    card.innerHTML = `
+      <div class="text-4xl w-14 text-center flex-shrink-0">${medal}</div>
+      <img src="/uploads/${item.filename}" class="w-20 h-20 object-cover rounded-xl border border-white/10 bg-zinc-950/50" />
+      <div class="flex-1 min-w-0">
+        <p class="font-bold text-lg truncate">Participant #${item.participant}</p>
+        <p class="text-yellow-400 text-xl tracking-wider">${stars}</p>
+        <p class="text-zinc-400 text-sm mt-0.5">${item.avg_score.toFixed(2)} avg · ${item.vote_count} vote${item.vote_count !== 1 ? 's' : ''}</p>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// WEBSOCKET
+// ═══════════════════════════════════════════════════════════════════
+function connectWS() {
+  if (state.participantId === null) return;
+
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws    = new WebSocket(`${proto}//${location.host}/ws/participant`);
+  state.ws    = ws;
+
+  ws.addEventListener('open', () => {
+    setWsDot(true);
+    state.wsBackoff = 1000;
+  });
+
+  ws.addEventListener('message', async ({ data }) => {
+    const msg = JSON.parse(data);
+
+    if (msg.type === 'state_sync' || msg.type === 'phase_changed') {
+      const newPhase = msg.phase;
+      if (newPhase !== state.phase) {
+        state.phase = newPhase;
+        await renderPhase();
+      }
+    } else if (msg.type === 'results_revealed') {
+      state.lastLeaderboard = msg.leaderboard;
+      state.phase = 'RESULTS';
+      showView('results');
+      renderResults(msg.leaderboard);
+    } else if (msg.type === 'event_reset') {
+      state.phase     = 'WAITING';
+      state.hasUpload = false;
+      state.images    = [];
+      showView('waiting');
+    }
+  });
+
+  ws.addEventListener('close', () => {
+    setWsDot(false);
+    // Exponential backoff reconnect
+    setTimeout(() => {
+      state.wsBackoff = Math.min(state.wsBackoff * 2, 30000);
+      connectWS();
+    }, state.wsBackoff);
+  });
+
+  ws.addEventListener('error', () => ws.close());
+}
+
+function setWsDot(online) {
+  const dot = document.getElementById('ws-dot');
+  dot.className = `w-2 h-2 rounded-full ${online ? 'bg-emerald-500' : 'bg-indigo-500'}`;
+  dot.title     = online ? 'Connected' : 'Disconnected';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+const VIEWS = ['waiting', 'upload', 'upload-done', 'voting', 'voting-done', 'results', 'not-registered', 'error'];
+
+function showView(name) {
+  VIEWS.forEach(v => {
+    const el = document.getElementById(`view-${v}`);
+    if (el) el.classList.add('hidden');
+  });
+  const target = document.getElementById(`view-${name}`);
+  if (target) target.classList.remove('hidden');
+}
+
+function updateBadge() {
+  const badge = document.getElementById('participant-badge');
+  if (state.displayNumber) {
+    badge.textContent = `Participant #${state.displayNumber}`;
+    badge.classList.remove('hidden');
+  }
+}
+
+function openFullscreenImage() {
+  const modal = document.getElementById('fullscreen-modal');
+  const img = document.getElementById('fullscreen-modal-img');
+  img.src = document.getElementById('vote-image').src;
+  modal.classList.remove('hidden');
+}
+
+function closeFullscreenImage() {
+  document.getElementById('fullscreen-modal').classList.add('hidden');
+}
+</script>
+
+<!-- Fullscreen Image Modal -->
+<div id="fullscreen-modal" class="fixed inset-0 z-[100] hidden bg-black/95 flex items-center justify-center backdrop-blur-md p-4 md:p-8 cursor-zoom-out" onclick="closeFullscreenImage()">
+  <button class="absolute top-6 right-6 text-white/50 hover:text-white text-4xl font-light transition-colors z-[110]">&times;</button>
+  <img id="fullscreen-modal-img" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-fade-in" />
+</div>
+</body>
+</html>
