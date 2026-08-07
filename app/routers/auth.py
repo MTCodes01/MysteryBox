@@ -14,6 +14,7 @@ from app.services.event_service import (
     broadcast_stats,
     get_or_create_event,
     rotate_token,
+    get_leaderboard,
 )
 from app.services.qr_service import generate_token
 from app.services.ws_manager import manager
@@ -142,9 +143,12 @@ async def get_me(
     db: AsyncSession = Depends(get_db),
 ):
     event = await get_or_create_event(db)
-    return {
+    resp = {
         "participant_id": participant.id,
         "display_number": participant.display_number,
         "phase":          event.phase.value,
         "has_upload":     participant.upload is not None,
     }
+    if event.phase == Phase.RESULTS:
+        resp["leaderboard"] = await get_leaderboard(db)
+    return resp

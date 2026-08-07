@@ -128,7 +128,10 @@ async def get_leaderboard(db: AsyncSession) -> list[dict]:
 
     rows.sort(key=lambda r: (r["avg_score"], r["vote_count"]), reverse=True)
     for i, r in enumerate(rows):
-        r["rank"] = i + 1
+        if i > 0 and r["avg_score"] == rows[i - 1]["avg_score"] and r["vote_count"] == rows[i - 1]["vote_count"]:
+            r["rank"] = rows[i - 1]["rank"]
+        else:
+            r["rank"] = i + 1
     return rows
 
 
