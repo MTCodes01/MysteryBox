@@ -1,0 +1,16 @@
+venv/
+.env
+.git/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+.venv/
+.pytest_cache/
+.vscode/
+.idea/
+.gemini/
+event_voting.db
+app/uploads/

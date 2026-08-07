@@ -105,8 +105,8 @@ async def get_images_to_vote(
     if event.phase not in (Phase.VOTING, Phase.RESULTS):
         raise HTTPException(status_code=400, detail="Voting has not started yet.")
 
-    # All uploads
-    result = await db.execute(select(Upload))
+    # All uploads except participant's own
+    result = await db.execute(select(Upload).where(Upload.participant_id != participant.id))
     uploads = result.scalars().all()
 
     rng = random.Random(participant.id)

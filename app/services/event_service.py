@@ -16,7 +16,6 @@ from app.services.ws_manager import manager
 logger = logging.getLogger(__name__)
 
 
-# ── Event helpers ─────────────────────────────────────────────────────────────────
 
 async def get_or_create_event(db: AsyncSession) -> Event:
     result = await db.execute(select(Event).limit(1))
@@ -39,7 +38,6 @@ async def set_phase(db: AsyncSession, phase: Phase) -> Event:
     return event
 
 
-# ── Token / QR helpers ────────────────────────────────────────────────────────────
 
 async def get_or_create_active_token(db: AsyncSession) -> InviteToken:
     """Return the current unused token, creating one if needed."""
@@ -69,7 +67,6 @@ async def rotate_token(db: AsyncSession, base_url: str) -> InviteToken:
     return new_token
 
 
-# ── Stats ─────────────────────────────────────────────────────────────────────────
 
 async def get_stats(db: AsyncSession) -> dict[str, Any]:
     total_participants = (await db.execute(select(func.count()).select_from(Participant))).scalar() or 0

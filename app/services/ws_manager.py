@@ -21,7 +21,6 @@ class ConnectionManager:
         # set of host WebSockets
         self.host_connections: set[WebSocket] = set()
 
-    # ── Participant ───────────────────────────────────────────────────────────────
     async def connect_participant(self, participant_id: int, ws: WebSocket) -> None:
         await ws.accept()
         self.participant_connections[participant_id] = ws
@@ -49,7 +48,6 @@ class ConnectionManager:
         for pid in dead:
             self.disconnect_participant(pid)
 
-    # ── Host ─────────────────────────────────────────────────────────────────────
     async def connect_host(self, ws: WebSocket) -> None:
         await ws.accept()
         self.host_connections.add(ws)
@@ -69,14 +67,12 @@ class ConnectionManager:
         for ws in dead:
             self.disconnect_host(ws)
 
-    # ── Broadcast to all ─────────────────────────────────────────────────────────
     async def broadcast_all(self, data: dict) -> None:
         await asyncio.gather(
             self.broadcast_participants(data),
             self.broadcast_host(data),
         )
 
-    # ── Typed helpers ─────────────────────────────────────────────────────────────
     async def emit(self, event_type: str, payload: dict[str, Any], audience: str = "all") -> None:
         """
         audience: 'all' | 'participants' | 'host'

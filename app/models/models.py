@@ -11,7 +11,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
-# ── Phase Enum ───────────────────────────────────────────────────────────────────
 class Phase(str, enum.Enum):
     WAITING = "WAITING"
     UPLOAD  = "UPLOAD"
@@ -19,7 +18,6 @@ class Phase(str, enum.Enum):
     RESULTS = "RESULTS"
 
 
-# ── Event ─────────────────────────────────────────────────────────────────────────
 class Event(Base):
     __tablename__ = "events"
 
@@ -29,7 +27,6 @@ class Event(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
-# ── InviteToken ───────────────────────────────────────────────────────────────────
 class InviteToken(Base):
     __tablename__ = "invite_tokens"
 
@@ -42,7 +39,6 @@ class InviteToken(Base):
     participant: Mapped[Optional["Participant"]] = relationship("Participant", back_populates="token")
 
 
-# ── Participant ───────────────────────────────────────────────────────────────────
 class Participant(Base):
     __tablename__ = "participants"
 
@@ -57,7 +53,6 @@ class Participant(Base):
     votes:   Mapped[list["Vote"]]            = relationship("Vote", back_populates="voter", foreign_keys="Vote.voter_id")
 
 
-# ── Upload ────────────────────────────────────────────────────────────────────────
 class Upload(Base):
     __tablename__ = "uploads"
 
@@ -71,7 +66,6 @@ class Upload(Base):
     votes:       Mapped[list["Vote"]]  = relationship("Vote", back_populates="upload")
 
 
-# ── Vote ──────────────────────────────────────────────────────────────────────────
 class Vote(Base):
     __tablename__ = "votes"
     __table_args__ = (UniqueConstraint("voter_id", "upload_id", name="uq_voter_upload"),)

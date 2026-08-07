@@ -1,4 +1,4 @@
-# Event Voting App
+# Mystery Box App
 
 A lightweight, real-time event voting application built with **FastAPI + SQLite + Vanilla JS + Tailwind CSS**.
 
@@ -20,7 +20,7 @@ Then open:
 - 📸 Image upload (PNG, JPG, WEBP, max 10MB, auto-compressed)
 - ⭐ 1–5 star rating for each poster
 - 🏆 Live leaderboard with medals
-- 🔴 Real-time WebSocket updates — no polling
+- 🔴 Real-time WebSocket updates - no polling
 - 🌑 Dark mode responsive UI
 - 📊 CSV export of votes
 - 📦 ZIP export of all uploaded images

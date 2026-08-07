@@ -25,7 +25,6 @@ router = APIRouter()
 SESSION_COOKIE = "session_id"
 
 
-# ── Dependency: resolve current participant ───────────────────────────────────────
 
 async def get_current_participant(
     request: Request,
@@ -46,7 +45,6 @@ async def get_current_participant(
     return participant
 
 
-# ── POST /join/{token} ────────────────────────────────────────────────────────────
 
 @router.post("/join/{token}")
 async def join_event(
@@ -137,7 +135,6 @@ async def join_event(
     }
 
 
-# ── GET /me ───────────────────────────────────────────────────────────────────────
 
 @router.get("/me")
 async def get_me(

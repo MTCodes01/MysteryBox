@@ -37,36 +37,36 @@ def verify_host(request: Request):
 router = APIRouter(prefix="/host", dependencies=[Depends(verify_host)])
 
 
-# ── GET /host/qr ──────────────────────────────────────────────────────────────────
 
 @router.get("/qr")
 async def get_current_qr(request: Request, db: AsyncSession = Depends(get_db)):
     token = await get_or_create_active_token(db)
     base_url = str(request.base_url).rstrip("/")
+    if base_url.startswith("http://") and "localhost" not in base_url and "127.0.0.1" not in base_url:
+        base_url = base_url.replace("http://", "https://", 1)
     join_url = f"{base_url}/join/{token.token}"
     qr_b64   = make_qr_base64(join_url)
     return {"token": token.token, "qr": qr_b64, "join_url": join_url}
 
 
-# ── POST /host/qr/next ────────────────────────────────────────────────────────────
 
 @router.post("/qr/next")
 async def generate_next_qr(request: Request, db: AsyncSession = Depends(get_db)):
     base_url = str(request.base_url).rstrip("/")
+    if base_url.startswith("http://") and "localhost" not in base_url and "127.0.0.1" not in base_url:
+        base_url = base_url.replace("http://", "https://", 1)
     token    = await rotate_token(db, base_url)
     join_url = f"{base_url}/join/{token.token}"
     qr_b64   = make_qr_base64(join_url)
     return {"token": token.token, "qr": qr_b64, "join_url": join_url}
 
 
-# ── GET /host/stats ───────────────────────────────────────────────────────────────
 
 @router.get("/stats")
 async def host_stats(db: AsyncSession = Depends(get_db)):
     return await get_stats(db)
 
 
-# ── GET /host/participants ─────────────────────────────────────────────────────────
 
 @router.get("/participants")
 async def list_participants(db: AsyncSession = Depends(get_db)):
@@ -100,7 +100,6 @@ async def list_participants(db: AsyncSession = Depends(get_db)):
     return rows
 
 
-# ── POST /host/phase ──────────────────────────────────────────────────────────────
 
 class PhasePayload(BaseModel):
     phase: Phase
@@ -113,7 +112,6 @@ async def change_phase(payload: PhasePayload, db: AsyncSession = Depends(get_db)
     return {"phase": event.phase.value}
 
 
-# ── POST /host/reveal ─────────────────────────────────────────────────────────────
 
 @router.post("/reveal")
 async def reveal_results(db: AsyncSession = Depends(get_db)):
@@ -123,14 +121,12 @@ async def reveal_results(db: AsyncSession = Depends(get_db)):
     return {"leaderboard": leaderboard}
 
 
-# ── GET /host/leaderboard ─────────────────────────────────────────────────────────
 
 @router.get("/leaderboard")
 async def get_board(db: AsyncSession = Depends(get_db)):
     return await get_leaderboard(db)
 
 
-# ── DELETE /host/participant/{id} ─────────────────────────────────────────────────
 
 @router.delete("/participant/{participant_id}")
 async def delete_participant(participant_id: int, db: AsyncSession = Depends(get_db)):
@@ -166,7 +162,6 @@ async def delete_participant(participant_id: int, db: AsyncSession = Depends(get
     return {"message": "Participant removed."}
 
 
-# ── POST /host/restart_voting ───────────────────────────────────────────────────
 
 @router.post("/restart_voting")
 async def restart_voting(db: AsyncSession = Depends(get_db)):
@@ -189,7 +184,6 @@ async def restart_voting(db: AsyncSession = Depends(get_db)):
     return {"message": "Voting restarted."}
 
 
-# ── POST /host/reset ──────────────────────────────────────────────────────────────
 
 @router.post("/reset")
 async def reset_event(request: Request, db: AsyncSession = Depends(get_db)):
@@ -222,7 +216,6 @@ async def reset_event(request: Request, db: AsyncSession = Depends(get_db)):
     return {"message": "Event reset."}
 
 
-# ── GET /host/export/csv ──────────────────────────────────────────────────────────
 
 @router.get("/export/csv")
 async def export_csv(db: AsyncSession = Depends(get_db)):
@@ -243,7 +236,6 @@ async def export_csv(db: AsyncSession = Depends(get_db)):
     )
 
 
-# ── GET /host/export/zip ──────────────────────────────────────────────────────────
 
 @router.get("/export/zip")
 async def export_zip(db: AsyncSession = Depends(get_db)):

@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# ── /ws/participant ───────────────────────────────────────────────────────────────
 
 @router.websocket("/ws/participant")
 async def participant_ws(websocket: WebSocket):
@@ -69,7 +68,6 @@ async def participant_ws(websocket: WebSocket):
             await broadcast_stats(db)
 
 
-# ── /ws/host ──────────────────────────────────────────────────────────────────────
 
 @router.websocket("/ws/host")
 async def host_ws(websocket: WebSocket):
